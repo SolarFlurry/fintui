@@ -24,7 +24,7 @@ pub fn main() !void {
     const io = threaded.io();
 
     // setup stdout and stdin (so much boilerplate i know) 
-    var stdout = std.Io.File.stdout().writer(&.{});
+    var stdout = std.Io.File.stdout().writer(io, &.{});
     const writer = &stdout.interface;
 
     const stdin = std.Io.File.stdin();
