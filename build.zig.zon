@@ -1,0 +1,7 @@
+.{
+    .name = .fintui,
+    .version = "0.0.1",
+    .minimum_zig_version = "0.15.2",
+    .paths = .{""},
+    .fingerprint = 0x156a4c2bca667b35,
+}

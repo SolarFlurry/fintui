@@ -1,0 +1,62 @@
+const std = @import("std");
+const fintui = @import("root.zig");
+
+pub fn main() !void {
+    var gpa = std.heap.DebugAllocator(.{}).init;
+
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    var threaded: std.Io.Threaded = .init(gpa.allocator(), .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+
+    var stdout = std.Io.File.stdout().writer(io, &.{});
+    const writer = &stdout.interface;
+
+    const stdin = std.Io.File.stdin();
+
+    var screen = try fintui.Screen.init(
+        gpa.allocator(),
+        arena.allocator(),
+        writer,
+    );
+    defer screen.deinit() catch {};
+
+    var mousePos: struct { x: u8, y: u8 } = .{
+        .x = 0,
+        .y = 0,
+    };
+
+    var mouseState: @FieldType(fintui.Screen.event.Mouse, "state") = .released;
+
+    while (true) {
+        defer _ = arena.reset(.free_all);
+        defer screen.render() catch {};
+
+        try screen.addStringChange(0, 0, "Use 'q' to exit this demo!", .{});
+        try screen.addStringChange(0, 1, "Use 'c' to clear the canvas", .{});
+
+        const event = try screen.pollEvent(stdin.handle) orelse continue;
+
+        switch (event) {
+            .char => |key| {
+                if (@intFromEnum(key) == 'q' or @intFromEnum(key) == 'Q') break;
+                if (@intFromEnum(key) == 'c' or @intFromEnum(key) == 'C') {
+                    try screen.fill(.{});
+                    continue;
+                }
+            },
+            .mouse => |mouse| {
+                if (mouse.state != .left_down) try screen.addChange(mousePos.x, mousePos.y, .{});
+                mousePos.x = mouse.x;
+                mousePos.y = mouse.y;
+                mouseState = mouse.state;
+            },
+        }
+
+        try screen.addChange(mousePos.x, mousePos.y, .{
+            .grapheme = if (mouseState == .released) '*' else '+',
+        });
+    }
+}
