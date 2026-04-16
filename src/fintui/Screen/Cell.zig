@@ -11,7 +11,7 @@ pub const Modifiers = enum(u8) {
 };
 
 pub const Style = struct {
-    fg: Color = .Black,
-    bg: Color = .Black,
+    fg: Color = .white,
+    bg: Color = .black,
     modifiers: Modifiers = .none,
 };

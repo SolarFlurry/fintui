@@ -11,7 +11,9 @@ pub fn main() !void {
     defer threaded.deinit();
     const io = threaded.io();
 
-    var stdout = std.Io.File.stdout().writer(io, &.{});
+    var stdout_buf: [1024]u8 = undefined;
+
+    var stdout = std.Io.File.stdout().writer(io, &stdout_buf);
     const writer = &stdout.interface;
 
     const stdin = std.Io.File.stdin();
@@ -34,8 +36,8 @@ pub fn main() !void {
         defer _ = arena.reset(.free_all);
         defer screen.render() catch {};
 
-        try screen.addStringChange(0, 0, "Use 'q' to exit this demo!", .{});
-        try screen.addStringChange(0, 1, "Use 'c' to clear the canvas", .{});
+        try screen.writeString(0, 0, "Use 'q' to exit this demo!", .{});
+        try screen.writeString(0, 1, "Use 'c' to clear the canvas", .{});
 
         const event = try screen.pollEvent(stdin.handle) orelse continue;
 
@@ -48,14 +50,14 @@ pub fn main() !void {
                 }
             },
             .mouse => |mouse| {
-                if (mouse.state != .left_down) try screen.addChange(mousePos.x, mousePos.y, .{});
+                if (mouse.state != .left_down) try screen.changeCell(mousePos.x, mousePos.y, .{});
                 mousePos.x = mouse.x;
                 mousePos.y = mouse.y;
                 mouseState = mouse.state;
             },
         }
 
-        try screen.addChange(mousePos.x, mousePos.y, .{
+        try screen.changeCell(mousePos.x, mousePos.y, .{
             .grapheme = if (mouseState == .released) '*' else '+',
         });
     }

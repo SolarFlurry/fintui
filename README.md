@@ -23,8 +23,10 @@ pub fn main() !void {
     defer threaded.deinit();
     const io = threaded.io();
 
-    // setup stdout and stdin (so much boilerplate i know) 
-    var stdout = std.Io.File.stdout().writer(io, &.{});
+    // setup stdout and stdin (so much boilerplate i know)
+    // buffered write is useful to prevent partially blank frames
+    var stdout_buf: [1024]u8 = undefined;
+    var stdout = std.Io.File.stdout().writer(io, &stdout_buf);
     const writer = &stdout.interface;
 
     const stdin = std.Io.File.stdin();
@@ -43,7 +45,7 @@ pub fn main() !void {
         defer screen.render() catch {}; // render screen
         
         // render a string to the screen!
-        screen.addStringChange(0, 0, "Some text!", .{});
+        screen.writeString(0, 0, "Some text!", .{});
     }
 }
 ```

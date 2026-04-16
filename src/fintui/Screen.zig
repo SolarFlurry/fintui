@@ -55,6 +55,7 @@ pub fn deinit(self: *Self) !void {
     self.gpa.free(self.data);
     try tty.disableRawMode();
     try self.out.writeAll("\x1b[?1003l\x1b[?1049l\x1b[?25h\x1b 8");
+    try self.out.flush();
 }
 
 pub fn getCell(self: *Self, x: u32, y: u32) *Cell {
@@ -66,7 +67,7 @@ pub fn isInside(self: *const Self, x: u32, y: u32) bool {
 }
 
 /// Adding more changes after calling this method, before calling `render`, will
-/// result in a runtime panic
+/// result in a runtime panic. It is not recommended to use this method.
 pub fn fill(self: *Self, cell: Cell) !void {
     for (self.data) |*c| {
         c.* = cell;
@@ -74,7 +75,7 @@ pub fn fill(self: *Self, cell: Cell) !void {
     self.changes.len = self.width * self.height;
 }
 
-pub fn addChange(self: *Self, x: u16, y: u16, change: Cell) ChangeError!void {
+pub fn changeCell(self: *Self, x: u16, y: u16, change: Cell) ChangeError!void {
     if (x >= self.width or x < 0 or y >= self.height or y < 0) return error.OutOfBounds;
     const target_cell = self.getCell(x, y);
     if (target_cell.grapheme == change.grapheme) return;
@@ -87,14 +88,14 @@ pub fn addChange(self: *Self, x: u16, y: u16, change: Cell) ChangeError!void {
     target_cell.* = change;
 }
 
-pub fn addStringChange(self: *Self, x: u16, y: u16, string: []const u8, style: Cell.Style) ChangeError!void {
+pub fn writeString(self: *Self, x: u16, y: u16, string: []const u8, style: Cell.Style) ChangeError!void {
     var iter: std.unicode.Utf8Iterator = .{
         .i = 0,
         .bytes = string,
     };
     var i = x;
     while (iter.nextCodepoint()) |grapheme| {
-        try self.addChange(i, y, .{
+        try self.changeCell(i, y, .{
             .grapheme = grapheme,
             .style = style,
         });
@@ -110,25 +111,46 @@ pub fn render(self: *Self) !void {
     }
 
     for (0..self.changes.len) |i| {
-        try self.out.print("\x1b[{d};{d}H{u}", .{
+        const change = self.changes.items(.change)[i];
+        try self.out.print("\x1b[{d};{d}H\x1b[38;2;{d};{d};{d}m\x1b[48;2;{d};{d};{d}m{u}", .{
             self.changes.items(.y)[i] + 1,
             self.changes.items(.x)[i] + 1,
-            self.changes.items(.change)[i].grapheme,
+            change.style.fg.r,
+            change.style.fg.g,
+            change.style.fg.b,
+            change.style.bg.r,
+            change.style.bg.g,
+            change.style.bg.b,
+            change.grapheme,
         });
     }
     self.changes = .empty;
+
+    try self.out.flush();
 }
 
 fn fullRender(self: *Self) !void {
     try self.out.writeAll("\x1b[H");
     for (0..self.height) |j| {
         for (0..self.width) |i| {
+            const cell = self.getCell(@intCast(i), @intCast(j));
+            try self.out.print("\x1b[38;2;{d};{d};{d}m\x1b[48;2;{d};{d};{d}m{u}", .{
+                cell.style.fg.r,
+                cell.style.fg.g,
+                cell.style.fg.b,
+                cell.style.bg.r,
+                cell.style.bg.g,
+                cell.style.bg.b,
+                cell.grapheme,
+            });
             try self.out.printUnicodeCodepoint(self.getCell(@intCast(i), @intCast(j)).grapheme);
         }
         if (j == self.height - 1) break;
         try self.out.writeAll("\r\n");
     }
     self.changes.len = 0;
+
+    try self.out.flush();
 }
 
 pub fn pollEvent(_: *Self, handle: std.posix.fd_t) !?Event {
