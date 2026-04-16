@@ -111,14 +111,21 @@ pub fn rectCell(self: *Self, x: u8, y: u8, width: u8, height: u8, change: Cell) 
     }
 }
 
+// '\n' in the `string` parameter will be interpreted as a newline and will cause
+// the changes to go down a line
 pub fn writeString(self: *Self, x: u8, y: u8, string: []const u8, style: Cell.Style) ChangeError!void {
     var iter: std.unicode.Utf8Iterator = .{
         .i = 0,
         .bytes = string,
     };
     var i = x;
+    var j = y;
     while (iter.nextCodepoint()) |grapheme| {
-        try self.changeCell(i, y, .{
+        if (grapheme == '\n') {
+            j += 1;
+            i = x;
+        }
+        try self.changeCell(i, j, .{
             .grapheme = grapheme,
             .style = style,
         });

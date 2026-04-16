@@ -1,6 +1,8 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
+    const build_examples = b.option(bool, "examples", "Build the examples in the src/examples directory") orelse false;
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -14,15 +16,28 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    const exe_fintui = b.addExecutable(.{
-        .name = "libtest",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
+    if (!build_examples) return;
 
-    b.installArtifact(lib_fintui);
-    b.installArtifact(exe_fintui);
+    const examples_dir = try b.build_root.handle.openDir(b.graph.io, "src/example", .{ .iterate = true });
+    defer examples_dir.close(b.graph.io);
+
+    var iter = examples_dir.iterateAssumeFirstIteration();
+    while (try iter.next(b.graph.io)) |entry| {
+        if (entry.kind != .file or !std.mem.endsWith(u8, entry.name, ".zig")) continue;
+
+        const basename = std.fs.path.basename(entry.name);
+
+        const exe_example = b.addExecutable(.{
+            .name = try std.mem.join(b.allocator, "", &.{ "libtest_", basename[0 .. basename.len - 4] }),
+            .root_module = b.createModule(.{
+                .root_source_file = b.path(try std.fs.path.join(b.allocator, &.{ "src/example", entry.name })),
+                .target = target,
+                .optimize = optimize,
+            }),
+        });
+
+        exe_example.root_module.addImport("fintui", lib_fintui.root_module);
+
+        b.installArtifact(exe_example);
+    }
 }

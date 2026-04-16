@@ -1,5 +1,5 @@
 const std = @import("std");
-const fintui = @import("root.zig");
+const fintui = @import("fintui");
 
 pub fn main() !void {
     var gpa = std.heap.DebugAllocator(.{}).init;

@@ -70,4 +70,4 @@ exe.root_module.addImport("fintui", fintui.module("fintui"));
 - Event reporting (key presses, mouse)
 - Change-based rendering
 
-For a demo example, see [`main.zig`](./src/main.zig).
+For a demo examples, see the [`examples`](./src/examples/) directory.
