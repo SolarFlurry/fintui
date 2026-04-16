@@ -20,10 +20,19 @@ pub const ChangeError = error{
     OutOfBounds,
 } || std.mem.Allocator.Error;
 
-pub const Changes = std.MultiArrayList(struct {
-    x: u16,
-    y: u16,
-    change: Cell,
+pub const Changes = std.MultiArrayList(union(enum) {
+    rect: struct {
+        x: u8,
+        y: u8,
+        width: u8,
+        height: u8,
+        change: Cell,
+    },
+    cell: struct {
+        x: u8,
+        y: u8,
+        change: Cell,
+    },
 });
 
 pub fn init(gpa: std.mem.Allocator, frame_arena: std.mem.Allocator, out: *std.Io.Writer) !Self {
@@ -66,29 +75,43 @@ pub fn isInside(self: *const Self, x: u32, y: u32) bool {
     return x >= 0 or y >= 0 or x < self.width or y < self.height;
 }
 
-/// Adding more changes after calling this method, before calling `render`, will
-/// result in a runtime panic. It is not recommended to use this method.
 pub fn fill(self: *Self, cell: Cell) !void {
-    for (self.data) |*c| {
-        c.* = cell;
-    }
-    self.changes.len = self.width * self.height;
+    try self.rectCell(0, 0, @intCast(self.width), @intCast(self.height), cell);
 }
 
-pub fn changeCell(self: *Self, x: u16, y: u16, change: Cell) ChangeError!void {
+pub fn changeCell(self: *Self, x: u8, y: u8, change: Cell) ChangeError!void {
     if (x >= self.width or x < 0 or y >= self.height or y < 0) return error.OutOfBounds;
     const target_cell = self.getCell(x, y);
     if (target_cell.grapheme == change.grapheme) return;
 
-    try self.changes.append(self.frame_arena, .{
+    try self.changes.append(self.frame_arena, .{ .cell = .{
         .change = change,
         .x = x,
         .y = y,
-    });
+    } });
     target_cell.* = change;
 }
 
-pub fn writeString(self: *Self, x: u16, y: u16, string: []const u8, style: Cell.Style) ChangeError!void {
+pub fn rectCell(self: *Self, x: u8, y: u8, width: u8, height: u8, change: Cell) ChangeError!void {
+    if (x + width > self.width or x < 0 or y + height > self.height or y < 0) return error.OutOfBounds;
+
+    try self.changes.append(self.frame_arena, .{ .rect = .{
+        .x = x,
+        .y = y,
+        .width = width,
+        .height = height,
+        .change = change,
+    } });
+
+    for (0..height) |j| {
+        for (0..width) |i| {
+            const target_cell = self.getCell(@intCast(x + i), @intCast(y + j));
+            target_cell.* = change;
+        }
+    }
+}
+
+pub fn writeString(self: *Self, x: u8, y: u8, string: []const u8, style: Cell.Style) ChangeError!void {
     var iter: std.unicode.Utf8Iterator = .{
         .i = 0,
         .bytes = string,
@@ -105,24 +128,41 @@ pub fn writeString(self: *Self, x: u16, y: u16, string: []const u8, style: Cell.
 
 /// This should only be called once a frame, after all changes have been accumulated
 pub fn render(self: *Self) !void {
-    if (self.changes.len > self.width * self.height / 2) {
+    if (self.changes.len > self.width * self.height) {
         try self.fullRender();
         return;
     }
 
     for (0..self.changes.len) |i| {
-        const change = self.changes.items(.change)[i];
-        try self.out.print("\x1b[{d};{d}H\x1b[38;2;{d};{d};{d}m\x1b[48;2;{d};{d};{d}m{u}", .{
-            self.changes.items(.y)[i] + 1,
-            self.changes.items(.x)[i] + 1,
-            change.style.fg.r,
-            change.style.fg.g,
-            change.style.fg.b,
-            change.style.bg.r,
-            change.style.bg.g,
-            change.style.bg.b,
-            change.grapheme,
-        });
+        switch (self.changes.get(i)) {
+            .cell => |cell| try self.out.print("\x1b[{d};{d}H\x1b[38;2;{d};{d};{d}m\x1b[48;2;{d};{d};{d}m{u}", .{
+                cell.y + 1,
+                cell.x + 1,
+                cell.change.style.fg.r,
+                cell.change.style.fg.g,
+                cell.change.style.fg.b,
+                cell.change.style.bg.r,
+                cell.change.style.bg.g,
+                cell.change.style.bg.b,
+                cell.change.grapheme,
+            }),
+            .rect => |rect| {
+                try self.out.print("\x1b[38;2;{d};{d};{d}m\x1b[48;2;{d};{d};{d}m", .{
+                    rect.change.style.fg.r,
+                    rect.change.style.fg.g,
+                    rect.change.style.fg.b,
+                    rect.change.style.bg.r,
+                    rect.change.style.bg.g,
+                    rect.change.style.bg.b,
+                });
+                for (0..rect.height) |j| {
+                    try self.out.print("\x1b[{d};{d}H", .{ rect.y + j + 1, rect.x + 1 });
+                    for (0..rect.width) |_| {
+                        try self.out.printUnicodeCodepoint(rect.change.grapheme);
+                    }
+                }
+            },
+        }
     }
     self.changes = .empty;
 
