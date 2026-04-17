@@ -124,6 +124,7 @@ pub fn writeString(self: *Self, x: u8, y: u8, string: []const u8, style: Cell.St
         if (grapheme == '\n') {
             j += 1;
             i = x;
+            continue;
         }
         try self.changeCell(i, j, .{
             .grapheme = grapheme,
