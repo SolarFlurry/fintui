@@ -15,6 +15,7 @@ changes: Changes,
 data: []Cell,
 width: u32,
 height: u32,
+last_time: std.Io.Timestamp,
 
 pub const ChangeError = error{
     OutOfBounds,
@@ -35,7 +36,7 @@ pub const Changes = std.MultiArrayList(union(enum) {
     },
 });
 
-pub fn init(gpa: std.mem.Allocator, frame_arena: std.mem.Allocator, out: *std.Io.Writer) !Self {
+pub fn init(gpa: std.mem.Allocator, frame_arena: std.mem.Allocator, out: *std.Io.Writer, io: std.Io) !Self {
     const winsize = try tty.getTermSize();
     var result: Self = .{
         .data = try gpa.alloc(Cell, winsize.@"0" * winsize.@"1"),
@@ -45,6 +46,7 @@ pub fn init(gpa: std.mem.Allocator, frame_arena: std.mem.Allocator, out: *std.Io
         .gpa = gpa,
         .frame_arena = frame_arena,
         .out = out,
+        .last_time = std.Io.Timestamp.now(io, .awake),
     };
 
     try tty.enableRawMode();
@@ -65,6 +67,17 @@ pub fn deinit(self: *Self) !void {
     try tty.disableRawMode();
     try self.out.writeAll("\x1b[?1003l\x1b[?1049l\x1b[?25h\x1b 8");
     try self.out.flush();
+}
+
+/// This calculates the delta in seconds. Use once per frame.
+pub fn delta(self: *Self, io: std.Io) f64 {
+    const current_time = std.Io.Timestamp.now(io, .awake);
+    const elapsed = self.last_time.durationTo(current_time);
+
+    const dt = @as(f64, @floatFromInt(elapsed.nanoseconds)) / std.time.ns_per_s;
+
+    self.last_time = current_time;
+    return dt;
 }
 
 pub fn getCell(self: *Self, x: u32, y: u32) *Cell {
