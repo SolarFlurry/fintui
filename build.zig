@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) !void {
 
     if (!build_examples) return;
 
-    const examples_dir = try b.build_root.handle.openDir(b.graph.io, "src/example", .{ .iterate = true });
+    const examples_dir = try b.build_root.handle.openDir(b.graph.io, "src/examples", .{ .iterate = true });
     defer examples_dir.close(b.graph.io);
 
     var iter = examples_dir.iterateAssumeFirstIteration();
@@ -30,7 +30,7 @@ pub fn build(b: *std.Build) !void {
         const exe_example = b.addExecutable(.{
             .name = try std.mem.join(b.allocator, "", &.{ "libtest_", basename[0 .. basename.len - 4] }),
             .root_module = b.createModule(.{
-                .root_source_file = b.path(try std.fs.path.join(b.allocator, &.{ "src/example", entry.name })),
+                .root_source_file = b.path(try std.fs.path.join(b.allocator, &.{ "src/examples", entry.name })),
                 .target = target,
                 .optimize = optimize,
             }),

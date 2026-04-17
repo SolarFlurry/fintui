@@ -36,6 +36,7 @@ pub fn main() !void {
         gpa.allocator(),
         arena.allocator(),
         writer,
+        io,
     );
     defer screen.deinit() catch {};
 
@@ -43,6 +44,8 @@ pub fn main() !void {
     while (true) {
         defer _ = arena.reset(.free_all); // reset frame arena per frame
         defer screen.render() catch {}; // render screen
+
+        const delta = screen.delta(); // call this function ONCE a frame to get deltatime
         
         // render a string to the screen!
         screen.writeString(0, 0, "Some text!", .{});

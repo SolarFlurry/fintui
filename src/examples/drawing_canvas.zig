@@ -22,6 +22,7 @@ pub fn main() !void {
         gpa.allocator(),
         arena.allocator(),
         writer,
+        io,
     );
     defer screen.deinit() catch {};
 
@@ -35,6 +36,8 @@ pub fn main() !void {
     while (true) {
         defer _ = arena.reset(.free_all);
         defer screen.render() catch {};
+
+        _ = screen.delta(io);
 
         try screen.writeString(0, 0, "Use 'q' to exit this demo!", .{});
         try screen.writeString(0, 1, "Use 'c' to clear the canvas", .{});
