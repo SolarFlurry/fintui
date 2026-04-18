@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const Cell = @import("Screen/Cell.zig");
-const Color = @import("Screen/Color.zig");
+const Color = Cell.Color;
 const tty = @import("Screen/tty.zig");
 pub const event = @import("Screen/event.zig");
 const Event = event.Event;
@@ -156,26 +156,13 @@ pub fn render(self: *Self) !void {
 
     for (0..self.changes.len) |i| {
         switch (self.changes.get(i)) {
-            .cell => |cell| try self.out.print("\x1b[{d};{d}H\x1b[38;2;{d};{d};{d}m\x1b[48;2;{d};{d};{d}m{u}", .{
-                cell.y + 1,
-                cell.x + 1,
-                cell.change.style.fg.r,
-                cell.change.style.fg.g,
-                cell.change.style.fg.b,
-                cell.change.style.bg.r,
-                cell.change.style.bg.g,
-                cell.change.style.bg.b,
-                cell.change.grapheme,
-            }),
+            .cell => |cell| {
+                try self.out.print("\x1b[{d};{d}H", .{ cell.y + 1, cell.x + 1 });
+                try cell.change.style.ansi(self.out);
+                try self.out.printUnicodeCodepoint(cell.change.grapheme);
+            },
             .rect => |rect| {
-                try self.out.print("\x1b[38;2;{d};{d};{d}m\x1b[48;2;{d};{d};{d}m", .{
-                    rect.change.style.fg.r,
-                    rect.change.style.fg.g,
-                    rect.change.style.fg.b,
-                    rect.change.style.bg.r,
-                    rect.change.style.bg.g,
-                    rect.change.style.bg.b,
-                });
+                try rect.change.style.ansi(self.out);
                 for (0..rect.height) |j| {
                     try self.out.print("\x1b[{d};{d}H", .{ rect.y + j + 1, rect.x + 1 });
                     for (0..rect.width) |_| {
@@ -195,16 +182,8 @@ fn fullRender(self: *Self) !void {
     for (0..self.height) |j| {
         for (0..self.width) |i| {
             const cell = self.getCell(@intCast(i), @intCast(j));
-            try self.out.print("\x1b[38;2;{d};{d};{d}m\x1b[48;2;{d};{d};{d}m{u}", .{
-                cell.style.fg.r,
-                cell.style.fg.g,
-                cell.style.fg.b,
-                cell.style.bg.r,
-                cell.style.bg.g,
-                cell.style.bg.b,
-                cell.grapheme,
-            });
-            try self.out.printUnicodeCodepoint(self.getCell(@intCast(i), @intCast(j)).grapheme);
+            try cell.style.ansi(self.out);
+            try self.out.printUnicodeCodepoint(cell.grapheme);
         }
         if (j == self.height - 1) break;
         try self.out.writeAll("\r\n");

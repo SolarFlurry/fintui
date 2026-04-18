@@ -85,9 +85,7 @@ pub fn main() !void {
         try screen.writeString(x, y, logo, .{});
         try screen.writeString(x + logo_width - 6, y - 3, water_spout[@trunc(anim_progress)], .{
             .fg = .{
-                .r = 12,
-                .g = 137,
-                .b = 232,
+                .truecolor = .{ 12, 137, 232 },
             },
         });
 
