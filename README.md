@@ -21,6 +21,7 @@ const fintui = @import("fintui");
 pub fn main() !void {
     // setup allocators
     var gpa: std.heap.DebugAllocator(.{}) = .init;
+    defer std.debug.assert(gpa.deinit() == .ok);
     var arena: std.heap.ArenaAllocator = .init(std.heap.page_allocator);
     defer arena.deinit();
 

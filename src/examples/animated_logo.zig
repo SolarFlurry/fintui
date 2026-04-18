@@ -39,6 +39,7 @@ const description = "a simple Zig TUI library";
 
 pub fn main() !void {
     var gpa = std.heap.DebugAllocator(.{}).init;
+    defer std.debug.assert(gpa.deinit() == .ok);
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
