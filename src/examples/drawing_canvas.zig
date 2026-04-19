@@ -34,6 +34,8 @@ pub fn main() !void {
 
     var mouseState: @FieldType(fintui.Screen.event.Mouse, "state") = .released;
 
+    try screen.showCursor();
+
     while (true) {
         defer _ = arena.reset(.free_all);
         defer screen.render() catch {};
@@ -58,6 +60,8 @@ pub fn main() !void {
                 mousePos.x = mouse.x;
                 mousePos.y = mouse.y;
                 mouseState = mouse.state;
+
+                try screen.moveCursor(mousePos.x, mousePos.y);
             },
         }
 

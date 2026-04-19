@@ -16,6 +16,14 @@ data: []Cell,
 width: u32,
 height: u32,
 last_time: std.Io.Timestamp,
+cursor: struct {
+    visibility: enum(u8) {
+        hidden,
+        shown,
+    },
+    x: u8,
+    y: u8,
+},
 
 pub const ChangeError = error{
     OutOfBounds,
@@ -47,6 +55,11 @@ pub fn init(gpa: std.mem.Allocator, frame_arena: std.mem.Allocator, out: *std.Io
         .frame_arena = frame_arena,
         .out = out,
         .last_time = std.Io.Timestamp.now(io, .awake),
+        .cursor = .{
+            .x = 0,
+            .y = 0,
+            .visibility = .hidden,
+        },
     };
 
     try tty.enableRawMode();
@@ -147,6 +160,23 @@ pub fn writeString(self: *Self, x: u8, y: u8, string: []const u8, style: Cell.St
     }
 }
 
+pub fn showCursor(self: *Self) !void {
+    if (self.cursor.visibility == .shown) return;
+    self.cursor.visibility = .shown;
+    try self.out.writeAll("\x1b[?25h");
+}
+
+pub fn hideCursor(self: *Self) !void {
+    if (self.cursor.visibility == .hidden) return;
+    self.cursor.visibility = .hidden;
+    try self.out.writeAll("\x1b[?25l");
+}
+
+pub fn moveCursor(self: *Self, x: u8, y: u8) !void {
+    self.cursor.x = x;
+    self.cursor.y = y;
+}
+
 /// This should only be called once a frame, after all changes have been accumulated
 pub fn render(self: *Self) !void {
     if (self.changes.len > self.width * self.height) {
@@ -173,6 +203,10 @@ pub fn render(self: *Self) !void {
         }
     }
     self.changes = .empty;
+
+    if (self.cursor.visibility == .shown) {
+        try self.out.print("\x1b[{d};{d}H", .{ self.cursor.y + 1, self.cursor.x + 1 });
+    }
 
     try self.out.flush();
 }
