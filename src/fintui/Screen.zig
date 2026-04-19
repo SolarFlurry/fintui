@@ -3,8 +3,6 @@ const std = @import("std");
 const Cell = @import("Screen/Cell.zig");
 const Color = Cell.Color;
 const tty = @import("Screen/tty.zig");
-pub const event = @import("Screen/event.zig");
-const Event = event.Event;
 
 const Self = @This();
 
@@ -225,29 +223,4 @@ fn fullRender(self: *Self) !void {
     self.changes.len = 0;
 
     try self.out.flush();
-}
-
-pub fn pollEvent(_: *Self, handle: std.posix.fd_t) !?Event {
-    var buffer: [6]u8 = undefined;
-    const read = try std.posix.read(handle, &buffer);
-
-    if (read == 0) return null;
-
-    if (read == 6 and std.mem.eql(u8, buffer[0..3], "\x1b[M")) {
-        if (buffer[3] > 67 or buffer[3] < 32) return null;
-
-        return .{
-            .mouse = .{
-                .x = buffer[4] - 33,
-                .y = buffer[5] - 33,
-                .state = @enumFromInt(buffer[3] % 32),
-            },
-        };
-    }
-
-    if (read != 1) return null;
-
-    return .{
-        .char = @enumFromInt(buffer[0]),
-    };
 }

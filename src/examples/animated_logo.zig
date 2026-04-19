@@ -71,7 +71,7 @@ pub fn main() !void {
 
         const delta = screen.delta(io);
 
-        if (try screen.pollEvent(stdin.handle)) |event| {
+        if (try fintui.event.poll(stdin.handle)) |event| {
             switch (event) {
                 .char => |key| {
                     if (@intFromEnum(key) == 'q') break;

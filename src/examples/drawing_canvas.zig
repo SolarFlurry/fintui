@@ -32,7 +32,7 @@ pub fn main() !void {
         .y = 0,
     };
 
-    var mouse_state: @FieldType(fintui.Screen.event.Mouse, "state") = .released;
+    var mouse_state: @FieldType(fintui.event.Mouse, "state") = .released;
 
     try screen.showCursor();
 
@@ -45,7 +45,7 @@ pub fn main() !void {
         try screen.writeString(0, 0, "Use 'q' to exit this demo!", .{});
         try screen.writeString(0, 1, "Use 'c' to clear the canvas", .{});
 
-        const event = try screen.pollEvent(stdin.handle) orelse continue;
+        const event = try fintui.event.poll(stdin.handle) orelse continue;
 
         switch (event) {
             .char => |key| {
