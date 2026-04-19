@@ -80,4 +80,4 @@ exe.root_module.addImport("fintui", fintui.module("fintui"));
 - Event reporting (key presses, mouse)
 - Change-based rendering
 
-For a demo examples, see the [`examples`](./src/examples/) directory.
+For a demo examples, see the [`examples`](./examples/) directory.

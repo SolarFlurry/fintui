@@ -1,7 +1,7 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) !void {
-    const build_examples = b.option(bool, "examples", "Build the examples in the src/examples directory") orelse false;
+    const build_examples = b.option(bool, "examples", "Build the examples in the examples directory") orelse false;
 
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) !void {
         .name = "fintui",
         .linkage = .static,
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/root.zig"),
+            .root_source_file = b.path("src/fintui.zig"),
             .target = target,
             .optimize = optimize,
         }),
@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) !void {
 
     if (!build_examples) return;
 
-    const examples_dir = try b.build_root.handle.openDir(b.graph.io, "src/examples", .{ .iterate = true });
+    const examples_dir = try b.build_root.handle.openDir(b.graph.io, "examples", .{ .iterate = true });
     defer examples_dir.close(b.graph.io);
 
     var iter = examples_dir.iterateAssumeFirstIteration();
@@ -30,7 +30,7 @@ pub fn build(b: *std.Build) !void {
         const exe_example = b.addExecutable(.{
             .name = try std.mem.join(b.allocator, "", &.{ "libtest_", basename[0 .. basename.len - 4] }),
             .root_module = b.createModule(.{
-                .root_source_file = b.path(try std.fs.path.join(b.allocator, &.{ "src/examples", entry.name })),
+                .root_source_file = b.path(try std.fs.path.join(b.allocator, &.{ "examples", entry.name })),
                 .target = target,
                 .optimize = optimize,
             }),
