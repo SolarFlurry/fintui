@@ -27,12 +27,12 @@ pub fn main() !void {
     );
     defer screen.deinit() catch {};
 
-    var mousePos: struct { x: u8, y: u8 } = .{
+    var mouse_pos: struct { x: u8, y: u8 } = .{
         .x = 0,
         .y = 0,
     };
 
-    var mouseState: @FieldType(fintui.Screen.event.Mouse, "state") = .released;
+    var mouse_state: @FieldType(fintui.Screen.event.Mouse, "state") = .released;
 
     try screen.showCursor();
 
@@ -56,17 +56,17 @@ pub fn main() !void {
                 }
             },
             .mouse => |mouse| {
-                if (mouse.state != .left_down) try screen.changeCell(mousePos.x, mousePos.y, .{});
-                mousePos.x = mouse.x;
-                mousePos.y = mouse.y;
-                mouseState = mouse.state;
+                if (mouse.state != .left_down) try screen.changeCell(mouse_pos.x, mouse_pos.y, .{});
+                mouse_pos.x = mouse.x;
+                mouse_pos.y = mouse.y;
+                mouse_state = mouse.state;
 
-                try screen.moveCursor(mousePos.x, mousePos.y);
+                try screen.moveCursor(mouse_pos.x, mouse_pos.y);
             },
         }
 
-        try screen.changeCell(mousePos.x, mousePos.y, .{
-            .grapheme = if (mouseState == .released) '*' else '+',
+        try screen.changeCell(mouse_pos.x, mouse_pos.y, .{
+            .grapheme = if (mouse_state == .released) '*' else '+',
         });
     }
 }
