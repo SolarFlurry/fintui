@@ -18,32 +18,26 @@ Setup example:
 const std = @import("std");
 const fintui = @import("fintui");
 
-pub fn main() !void {
-    // setup allocators
-    var gpa: std.heap.DebugAllocator(.{}) = .init;
-    defer std.debug.assert(gpa.deinit() == .ok);
+// Juicy Main!
+pub fn main(init: std.process.Init) !void {
+    // setup frame arena
     var arena: std.heap.ArenaAllocator = .init(std.heap.page_allocator);
     defer arena.deinit();
 
-    // setup io implementation
-    var threaded: std.Io.Threaded = .init(gpa.allocator(), .{});
-    defer threaded.deinit();
-    const io = threaded.io();
-
-    // setup stdout and stdin (so much boilerplate i know)
+    // setup stdout and stdin
     // buffered write is useful to prevent partially blank frames
     var stdout_buf: [1024]u8 = undefined;
-    var stdout = std.Io.File.stdout().writer(io, &stdout_buf);
+    var stdout = std.Io.File.stdout().writer(init.io, &stdout_buf);
     const writer = &stdout.interface;
 
     const stdin = std.Io.File.stdin();
 
     // setup fintui screen!
     var screen: fintui.Screen = .init(
-        gpa.allocator(),
+        init.gpa,
         arena.allocator(),
         writer,
-        io,
+        init.io,
     );
     defer screen.deinit() catch {};
 
@@ -52,7 +46,7 @@ pub fn main() !void {
         defer _ = arena.reset(.free_all); // reset frame arena per frame
         defer screen.render() catch {}; // render screen
 
-        const delta = screen.delta(); // call this function ONCE a frame to get deltatime
+        const delta = screen.delta(init.io); // call this function ONCE a frame to get deltatime
         
         // render a string to the screen!
         screen.writeString(0, 0, "Some text!", .{});

@@ -37,29 +37,22 @@ const water_spout_height: u8 = 3;
 
 const description = "a simple Zig TUI library";
 
-pub fn main() !void {
-    var gpa = std.heap.DebugAllocator(.{}).init;
-    defer std.debug.assert(gpa.deinit() == .ok);
-
+pub fn main(init: std.process.Init) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
-    var threaded: std.Io.Threaded = .init(gpa.allocator(), .{});
-    defer threaded.deinit();
-    const io = threaded.io();
-
     var stdout_buf: [1024]u8 = undefined;
 
-    var stdout = std.Io.File.stdout().writer(io, &stdout_buf);
+    var stdout = std.Io.File.stdout().writer(init.io, &stdout_buf);
     const writer = &stdout.interface;
 
     const stdin = std.Io.File.stdin();
 
     var screen = try fintui.Screen.init(
-        gpa.allocator(),
+        init.gpa,
         arena.allocator(),
         writer,
-        io,
+        init.io,
     );
     defer screen.deinit() catch {};
 
@@ -69,7 +62,7 @@ pub fn main() !void {
         defer _ = arena.reset(.free_all);
         defer screen.render() catch {};
 
-        const delta = screen.delta(io);
+        const delta = screen.delta(init.io);
 
         if (try fintui.event.poll(stdin.handle)) |event| {
             switch (event) {
