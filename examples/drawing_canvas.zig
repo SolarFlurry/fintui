@@ -41,7 +41,7 @@ pub fn main(init: std.process.Init) !void {
         const event = try fintui.event.poll(stdin.handle) orelse continue;
 
         switch (event) {
-            .char => |key| {
+            .key => |key| {
                 if (@intFromEnum(key) == 'q' or @intFromEnum(key) == 'Q') break;
                 if (@intFromEnum(key) == 'c' or @intFromEnum(key) == 'C') {
                     try screen.fill(.{});

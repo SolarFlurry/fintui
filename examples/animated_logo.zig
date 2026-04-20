@@ -66,7 +66,7 @@ pub fn main(init: std.process.Init) !void {
 
         if (try fintui.event.poll(stdin.handle)) |event| {
             switch (event) {
-                .char => |key| {
+                .key => |key| {
                     if (@intFromEnum(key) == 'q') break;
                 },
                 else => {},

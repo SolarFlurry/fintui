@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub const Event = union(enum) {
     mouse: Mouse,
-    char: Char,
+    key: Key,
 };
 
 pub const Mouse = struct {
@@ -16,7 +16,7 @@ pub const Mouse = struct {
     },
 };
 
-pub const Char = enum(u8) {
+pub const Key = enum(u8) {
     ctrl_a = 1,
     ctrl_b = 2,
     ctrl_c = 3,
@@ -70,6 +70,6 @@ fn parse(event_str: []const u8) ?Event {
     if (event_str.len != 1) return null;
 
     return .{
-        .char = @enumFromInt(event_str[0]),
+        .key = @enumFromInt(event_str[0]),
     };
 }
