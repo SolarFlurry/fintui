@@ -43,6 +43,10 @@ pub const Key = enum(u8) {
     ctrl_x = 24,
     ctrl_y = 25,
     ctrl_z = 26,
+    up = 252,
+    down = 253,
+    right = 254,
+    left = 255,
     _,
 };
 
@@ -54,16 +58,24 @@ pub fn poll(handle: std.posix.fd_t) !?Event {
 }
 
 fn parse(event_str: []const u8) ?Event {
-    if (event_str.len == 6 and std.mem.eql(u8, event_str[0..3], "\x1b[M")) {
-        // mouse event
-        if (event_str[3] > 67 or event_str[3] < 32) return null;
+    if (event_str.len == 6 and std.mem.eql(u8, event_str[0..2], "\x1b[")) {
+        return switch (event_str[2]) {
+            'M' => blk: { // mouse event
+                if (event_str[3] > 67 or event_str[3] < 32) return null;
 
-        return .{
-            .mouse = .{
-                .x = event_str[4] - 33,
-                .y = event_str[5] - 33,
-                .state = @enumFromInt(event_str[3] % 32),
+                break :blk .{
+                    .mouse = .{
+                        .x = event_str[4] - 33,
+                        .y = event_str[5] - 33,
+                        .state = @enumFromInt(event_str[3] % 32),
+                    },
+                };
             },
+            'A' => .{ .key = .up },
+            'B' => .{ .key = .down },
+            'C' => .{ .key = .right },
+            'D' => .{ .key = .left },
+            else => null,
         };
     }
 
