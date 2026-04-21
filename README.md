@@ -72,6 +72,6 @@ exe.root_module.addImport("fintui", fintui.module("fintui"));
 ## Features:
 
 - Event reporting (key presses, mouse)
-- Change-based rendering
+- Buffer diffing rendering
 
 For a demo examples, see the [`examples`](./examples/) directory.

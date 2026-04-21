@@ -22,6 +22,10 @@ pub const Style = struct {
         try self.bg.ansi(writer);
         try writer.writeByte('m');
     }
+
+    pub fn equals(a: Style, b: Style) bool {
+        return a.fg.equals(b.fg) and a.bg.equals(b.bg);
+    }
 };
 
 pub const Color = union(enum) {
@@ -57,5 +61,14 @@ pub const Color = union(enum) {
                 try writer.print("8;2;{d};{d};{d}", .{ rgb[0], rgb[1], rgb[2] });
             },
         }
+    }
+
+    pub fn equals(a: Color, b: Color) bool {
+        if (@as(std.meta.Tag(Color), a) != @as(std.meta.Tag(Color), b)) return false;
+
+        return switch (a) {
+            .index => a.index == b.index,
+            .truecolor => std.mem.eql(u8, &a.truecolor, &b.truecolor),
+        };
     }
 };

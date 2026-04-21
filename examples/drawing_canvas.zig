@@ -49,7 +49,7 @@ pub fn main(init: std.process.Init) !void {
                 }
             },
             .mouse => |mouse| {
-                if (mouse.state != .left_down) try screen.changeCell(mouse_pos.x, mouse_pos.y, .{});
+                if (mouse.state != .left_down) try screen.writeCell(mouse_pos.x, mouse_pos.y, .{});
                 mouse_pos.x = mouse.x;
                 mouse_pos.y = mouse.y;
                 mouse_state = mouse.state;
@@ -58,7 +58,7 @@ pub fn main(init: std.process.Init) !void {
             },
         }
 
-        try screen.changeCell(mouse_pos.x, mouse_pos.y, .{
+        try screen.writeCell(mouse_pos.x, mouse_pos.y, .{
             .grapheme = if (mouse_state == .released) '*' else '+',
         });
     }
