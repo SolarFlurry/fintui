@@ -58,9 +58,10 @@ pub fn poll(handle: std.posix.fd_t) !?Event {
 }
 
 fn parse(event_str: []const u8) ?Event {
-    if (event_str.len == 6 and std.mem.eql(u8, event_str[0..2], "\x1b[")) {
+    if (event_str.len > 2 and std.mem.eql(u8, event_str[0..2], "\x1b[")) {
         return switch (event_str[2]) {
             'M' => blk: { // mouse event
+                if (event_str.len != 6) return null;
                 if (event_str[3] > 67 or event_str[3] < 32) return null;
 
                 break :blk .{
