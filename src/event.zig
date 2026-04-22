@@ -17,6 +17,7 @@ pub const Mouse = struct {
 };
 
 pub const Key = enum(u8) {
+    ctrl_at = 0,
     ctrl_a = 1,
     ctrl_b = 2,
     ctrl_c = 3,
@@ -43,6 +44,13 @@ pub const Key = enum(u8) {
     ctrl_x = 24,
     ctrl_y = 25,
     ctrl_z = 26,
+    esc = 27,
+    ctrl_backslash = 28,
+    ctrl_rbrack = 29,
+    ctrl_caret = 30,
+    ctrl_underscore = 31,
+
+    backspace = 127,
     up = 252,
     down = 253,
     right = 254,
