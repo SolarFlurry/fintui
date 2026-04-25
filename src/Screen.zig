@@ -154,7 +154,7 @@ pub fn render(self: *Self) !void {
             var back_cell = &self.back_buffer[j * self.width + i];
             var front_cell = self.front_buffer[j * self.width + i];
 
-            if (back_cell.grapheme == front_cell.grapheme) {
+            if (back_cell.equals(front_cell)) {
                 i += 1;
                 continue;
             }
@@ -163,8 +163,8 @@ pub fn render(self: *Self) !void {
             try front_cell.style.ansi(self.out);
             const style = front_cell.style;
 
-            while (front_cell.grapheme != back_cell.grapheme and
-                front_cell.style.equals(style) and i < self.width)
+            while (i < self.width and !front_cell.equals(back_cell.*) and
+                front_cell.style.equals(style))
             {
                 try self.out.printUnicodeCodepoint(front_cell.grapheme);
                 back_cell.* = front_cell;

@@ -1,4 +1,5 @@
 const std = @import("std");
+const Cell = @This();
 
 grapheme: u21 = ' ', // Cell character can be a unicode codepoint
 style: Style = .{},
@@ -9,6 +10,10 @@ pub const Modifiers = enum(u8) {
     italic,
     bold_italic,
 };
+
+pub fn equals(a: Cell, b: Cell) bool {
+    return a.grapheme == b.grapheme and a.style.equals(b.style);
+}
 
 pub const Style = struct {
     fg: Color = .default,
