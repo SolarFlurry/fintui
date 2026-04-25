@@ -88,13 +88,13 @@ pub fn fill(self: *Self, cell: Cell) !void {
     try self.rectCell(0, 0, @intCast(self.width), @intCast(self.height), cell);
 }
 
-pub fn writeCell(self: *Self, x: u8, y: u8, change: Cell) ChangeError!void {
+pub fn writeCell(self: *Self, x: u16, y: u16, change: Cell) ChangeError!void {
     if (x >= self.width or x < 0 or y >= self.height or y < 0) return error.OutOfBounds;
     const target_cell = self.getCell(x, y);
     target_cell.* = change;
 }
 
-pub fn rectCell(self: *Self, x: u8, y: u8, width: u8, height: u8, change: Cell) ChangeError!void {
+pub fn rectCell(self: *Self, x: u16, y: u16, width: u16, height: u16, change: Cell) ChangeError!void {
     if (x + width > self.width or x < 0 or y + height > self.height or y < 0) return error.OutOfBounds;
 
     for (0..height) |j| {
@@ -107,7 +107,7 @@ pub fn rectCell(self: *Self, x: u8, y: u8, width: u8, height: u8, change: Cell) 
 
 // '\n' in the `string` parameter will be interpreted as a newline and will cause
 // the changes to go down a line
-pub fn writeString(self: *Self, x: u8, y: u8, string: []const u8, style: Cell.Style) ChangeError!void {
+pub fn writeString(self: *Self, x: u16, y: u16, string: []const u8, style: Cell.Style) ChangeError!void {
     var iter: std.unicode.Utf8Iterator = .{
         .i = 0,
         .bytes = string,
