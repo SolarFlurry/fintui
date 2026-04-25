@@ -33,7 +33,11 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.free_all);
         defer screen.render() catch {};
 
-        _ = screen.delta(init.io);
+        const delta = screen.delta(init.io);
+        const sleep_time = 1.0 / 60.0 - delta;
+        if (sleep_time > 0) {
+            try init.io.sleep(std.Io.Duration.fromNanoseconds(@trunc(sleep_time * std.time.ns_per_s)), .awake);
+        }
 
         try screen.writeString(0, 0, "Use 'q' to exit this demo!", .{});
         try screen.writeString(0, 1, "Use 'c' to clear the canvas", .{});

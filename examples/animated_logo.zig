@@ -56,13 +56,17 @@ pub fn main(init: std.process.Init) !void {
     );
     defer screen.deinit() catch {};
 
-    var anim_progress: f64 = 0;
+    var anim_progress: u8 = 0;
 
     while (true) {
         defer _ = arena.reset(.free_all);
         defer screen.render() catch {};
 
-        const delta = screen.delta(init.io);
+        const delta: f64 = screen.delta(init.io);
+        const sleep_time = 0.1 - delta;
+        if (sleep_time > 0) {
+            try init.io.sleep(std.Io.Duration.fromNanoseconds(@trunc(sleep_time * std.time.ns_per_s)), .awake);
+        }
 
         if (try fintui.event.poll(stdin.handle)) |event| {
             switch (event) {
@@ -77,7 +81,7 @@ pub fn main(init: std.process.Init) !void {
         const y: u8 = @intCast((screen.height - logo_height) / 2);
 
         try screen.writeString(x, y, logo, .{});
-        try screen.writeString(x + logo_width - 6, y - 3, water_spout[@trunc(anim_progress)], .{
+        try screen.writeString(x + logo_width - 6, y - 3, water_spout[anim_progress / 3], .{
             .fg = .{
                 .truecolor = .{ 12, 137, 232 },
             },
@@ -85,7 +89,7 @@ pub fn main(init: std.process.Init) !void {
 
         try screen.writeString(@intCast((screen.width - description.len) / 2), y + logo_height + 2, description, .{});
 
-        anim_progress += delta * 5;
-        if (anim_progress >= water_spout.len) anim_progress = 0;
+        anim_progress += 1;
+        if (anim_progress >= water_spout.len * 3) anim_progress = 0;
     }
 }
