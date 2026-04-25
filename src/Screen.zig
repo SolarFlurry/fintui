@@ -81,7 +81,7 @@ pub fn getCell(self: *Self, x: u32, y: u32) *Cell {
 }
 
 pub fn isInside(self: *const Self, x: u32, y: u32) bool {
-    return x >= 0 or y >= 0 or x < self.width or y < self.height;
+    return x >= 0 and y >= 0 and x < self.width and y < self.height;
 }
 
 pub fn fill(self: *Self, cell: Cell) !void {
