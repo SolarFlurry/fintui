@@ -1,43 +1,33 @@
 const std = @import("std");
 
-const Cell = @import("Screen/Cell.zig");
+pub const Cell = @import("Screen/Cell.zig");
 const Color = Cell.Color;
-const tty = @import("Screen/tty.zig");
 
 const Self = @This();
 
-gpa: std.mem.Allocator,
-frame_arena: std.mem.Allocator, // an arena that should be resetted every frame
-out: *std.Io.Writer,
 front_buffer: []Cell,
 back_buffer: []Cell,
 width: u32,
 height: u32,
-last_time: std.Io.Timestamp,
 cursor: struct {
     visibility: enum(u8) {
         hidden,
         shown,
     },
-    x: u8,
-    y: u8,
+    x: u16,
+    y: u16,
 },
 
 pub const ChangeError = error{
     OutOfBounds,
 };
 
-pub fn init(gpa: std.mem.Allocator, frame_arena: std.mem.Allocator, out: *std.Io.Writer, io: std.Io) !Self {
-    const winsize = try tty.getTermSize();
+pub fn init(gpa: std.mem.Allocator, width: u16, height: u16, out: *std.Io.Writer) !Self {
     var result: Self = .{
-        .front_buffer = try gpa.alloc(Cell, winsize.@"0" * winsize.@"1"),
-        .back_buffer = try gpa.alloc(Cell, winsize.@"0" * winsize.@"1"),
-        .width = winsize.@"0",
-        .height = winsize.@"1",
-        .gpa = gpa,
-        .frame_arena = frame_arena,
-        .out = out,
-        .last_time = std.Io.Timestamp.now(io, .awake),
+        .front_buffer = try gpa.alloc(Cell, width * height),
+        .back_buffer = try gpa.alloc(Cell, width * height),
+        .width = width,
+        .height = height,
         .cursor = .{
             .x = 0,
             .y = 0,
@@ -45,109 +35,54 @@ pub fn init(gpa: std.mem.Allocator, frame_arena: std.mem.Allocator, out: *std.Io
         },
     };
 
-    try tty.enableRawMode();
-
     for (result.front_buffer) |*cell| {
         cell.* = .{};
     }
 
-    try out.writeAll("\x1b 7\x1b[?1049h\x1b[2J\x1b[?25l\x1b[?1003h");
-    try result.fullRender();
+    try result.fullRender(out);
 
     return result;
 }
 
-pub fn deinit(self: *Self) !void {
-    self.gpa.free(self.front_buffer);
-    self.gpa.free(self.back_buffer);
-    try tty.disableRawMode();
-    try self.out.writeAll("\x1b[?1003l\x1b[?1049l\x1b[?25h\x1b 8");
-    try self.out.flush();
+pub fn deinit(self: *Self, gpa: std.mem.Allocator) !void {
+    gpa.free(self.front_buffer);
+    gpa.free(self.back_buffer);
 }
 
-/// This calculates the delta in seconds. Use once per frame.
-pub fn delta(self: *Self, io: std.Io) f64 {
-    const current_time = std.Io.Timestamp.now(io, .awake);
-    const elapsed = self.last_time.durationTo(current_time);
-
-    const dt = @as(f64, @floatFromInt(elapsed.nanoseconds)) / std.time.ns_per_s;
-
-    self.last_time = current_time;
-    return dt;
-}
-
-pub fn getCell(self: *Self, x: u32, y: u32) *Cell {
+pub fn readCell(self: *Self, x: u32, y: u32) *Cell {
     return &self.front_buffer[y * self.width + x];
+}
+
+pub fn writeCell(self: *Self, x: u16, y: u16, change: Cell) ChangeError!void {
+    if (x >= self.width or x < 0 or y >= self.height or y < 0) return error.OutOfBounds;
+    const target_cell = self.readCell(x, y);
+    target_cell.* = change;
 }
 
 pub fn isInside(self: *const Self, x: u32, y: u32) bool {
     return x >= 0 and y >= 0 and x < self.width and y < self.height;
 }
 
-pub fn fill(self: *Self, cell: Cell) !void {
-    try self.rectCell(0, 0, @intCast(self.width), @intCast(self.height), cell);
-}
-
-pub fn writeCell(self: *Self, x: u16, y: u16, change: Cell) ChangeError!void {
-    if (x >= self.width or x < 0 or y >= self.height or y < 0) return error.OutOfBounds;
-    const target_cell = self.getCell(x, y);
-    target_cell.* = change;
-}
-
-pub fn rectCell(self: *Self, x: u16, y: u16, width: u16, height: u16, change: Cell) ChangeError!void {
-    if (x + width > self.width or x < 0 or y + height > self.height or y < 0) return error.OutOfBounds;
-
-    for (0..height) |j| {
-        for (0..width) |i| {
-            const target_cell = self.getCell(@intCast(x + i), @intCast(y + j));
-            target_cell.* = change;
-        }
-    }
-}
-
-// '\n' in the `string` parameter will be interpreted as a newline and will cause
-// the changes to go down a line
-pub fn writeString(self: *Self, x: u16, y: u16, string: []const u8, style: Cell.Style) ChangeError!void {
-    var iter: std.unicode.Utf8Iterator = .{
-        .i = 0,
-        .bytes = string,
-    };
-    var i = x;
-    var j = y;
-    while (iter.nextCodepoint()) |grapheme| {
-        if (grapheme == '\n') {
-            j += 1;
-            i = x;
-            continue;
-        }
-        try self.writeCell(i, j, .{
-            .grapheme = grapheme,
-            .style = style,
-        });
-        i += 1;
-    }
-}
-
-pub fn showCursor(self: *Self) !void {
+pub fn showCursor(self: *Self, out: *std.Io.Writer) !void {
     if (self.cursor.visibility == .shown) return;
     self.cursor.visibility = .shown;
-    try self.out.writeAll("\x1b[?25h");
+    try out.writeAll("\x1b[?25h");
 }
 
-pub fn hideCursor(self: *Self) !void {
+pub fn hideCursor(self: *Self, out: *std.Io.Writer) !void {
     if (self.cursor.visibility == .hidden) return;
     self.cursor.visibility = .hidden;
-    try self.out.writeAll("\x1b[?25l");
+    try out.writeAll("\x1b[?25l");
 }
 
-pub fn moveCursor(self: *Self, x: u8, y: u8) !void {
+pub fn moveCursor(self: *Self, x: u16, y: u16) !void {
     self.cursor.x = x;
     self.cursor.y = y;
 }
 
 /// This method, as opposed to `fullRender`, diffs the front and back buffers.
 /// This should only be called once a frame
-pub fn render(self: *Self) !void {
+pub fn render(self: *Self, out: *std.Io.Writer) !void {
     for (0..self.height) |j| {
         var i: usize = 0;
         while (i < self.width) {
@@ -159,14 +94,14 @@ pub fn render(self: *Self) !void {
                 continue;
             }
 
-            try self.out.print("\x1b[{d};{d}H", .{ j + 1, i + 1 });
-            try front_cell.style.ansi(self.out);
+            try out.print("\x1b[{d};{d}H", .{ j + 1, i + 1 });
+            try front_cell.style.ansi(out);
             const style = front_cell.style;
 
             while (i < self.width and !front_cell.equals(back_cell.*) and
                 front_cell.style.equals(style))
             {
-                try self.out.printUnicodeCodepoint(front_cell.grapheme);
+                try out.printUnicodeCodepoint(front_cell.grapheme);
                 back_cell.* = front_cell;
                 i += 1;
                 back_cell = &self.back_buffer[j * self.width + i];
@@ -176,25 +111,25 @@ pub fn render(self: *Self) !void {
     }
 
     if (self.cursor.visibility == .shown) {
-        try self.out.print("\x1b[{d};{d}H", .{ self.cursor.y + 1, self.cursor.x + 1 });
+        try out.print("\x1b[{d};{d}H", .{ self.cursor.y + 1, self.cursor.x + 1 });
     }
 
-    try self.out.flush();
+    try out.flush();
 }
 
-fn fullRender(self: *Self) !void {
-    try self.out.writeAll("\x1b[H");
+fn fullRender(self: *Self, out: *std.Io.Writer) !void {
+    try out.writeAll("\x1b[H");
     for (0..self.height) |j| {
         for (0..self.width) |i| {
-            const cell = self.getCell(@intCast(i), @intCast(j));
-            try cell.style.ansi(self.out);
-            try self.out.printUnicodeCodepoint(cell.grapheme);
+            const cell = self.readCell(@intCast(i), @intCast(j));
+            try cell.style.ansi(out);
+            try out.printUnicodeCodepoint(cell.grapheme);
         }
         if (j == self.height - 1) break;
-        try self.out.writeAll("\r\n");
+        try out.writeAll("\r\n");
     }
 
-    try self.out.flush();
+    try out.flush();
 
     @memcpy(self.back_buffer, self.front_buffer);
 }
