@@ -12,13 +12,13 @@ pub fn main(init: std.process.Init) !void {
 
     const stdin = std.Io.File.stdin();
 
-    var screen = try fintui.Screen.init(
+    var tui = try fintui.Tui.init(
         init.gpa,
         arena.allocator(),
         writer,
         init.io,
     );
-    defer screen.deinit() catch {};
+    defer tui.deinit() catch {};
 
     var mouse_pos: struct { x: u8, y: u8 } = .{
         .x = 0,
@@ -27,20 +27,20 @@ pub fn main(init: std.process.Init) !void {
 
     var mouse_state: @FieldType(fintui.event.Mouse, "state") = .released;
 
-    try screen.showCursor();
+    try tui.showCursor();
 
     while (true) {
         defer _ = arena.reset(.free_all);
-        defer screen.render() catch {};
+        defer tui.render() catch {};
 
-        const delta = screen.delta(init.io);
+        const delta = tui.delta(init.io);
         const sleep_time = 1.0 / 60.0 - delta;
         if (sleep_time > 0) {
             try init.io.sleep(std.Io.Duration.fromNanoseconds(@trunc(sleep_time * std.time.ns_per_s)), .awake);
         }
 
-        try screen.writeString(0, 0, "Use 'q' to exit this demo!", .{});
-        try screen.writeString(0, 1, "Use 'c' to clear the canvas", .{});
+        try tui.drawString(0, 0, "Use 'q' to exit this demo!", .{});
+        try tui.drawString(0, 1, "Use 'c' to clear the canvas", .{});
 
         const event = try fintui.event.poll(stdin.handle) orelse continue;
 
@@ -48,21 +48,21 @@ pub fn main(init: std.process.Init) !void {
             .key => |key| {
                 if (@intFromEnum(key) == 'q' or @intFromEnum(key) == 'Q') break;
                 if (@intFromEnum(key) == 'c' or @intFromEnum(key) == 'C') {
-                    try screen.fill(.{});
+                    try tui.fill(.{});
                     continue;
                 }
             },
             .mouse => |mouse| {
-                if (mouse.state != .left_down) try screen.writeCell(mouse_pos.x, mouse_pos.y, .{});
+                if (mouse.state != .left_down) try tui.drawCell(mouse_pos.x, mouse_pos.y, .{});
                 mouse_pos.x = mouse.x;
                 mouse_pos.y = mouse.y;
                 mouse_state = mouse.state;
 
-                try screen.moveCursor(mouse_pos.x, mouse_pos.y);
+                try tui.moveCursor(mouse_pos.x, mouse_pos.y);
             },
         }
 
-        try screen.writeCell(mouse_pos.x, mouse_pos.y, .{
+        try tui.drawCell(mouse_pos.x, mouse_pos.y, .{
             .grapheme = if (mouse_state == .released) '*' else '+',
         });
     }

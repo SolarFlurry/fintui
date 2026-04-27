@@ -13,30 +13,30 @@ pub fn main(init: std.process.Init) !void {
 
     const stdin = std.Io.File.stdin();
 
-    var screen = try fintui.Screen.init(
+    var tui = try fintui.Tui.init(
         init.gpa,
         frame_alloc,
         writer,
         init.io,
     );
-    defer screen.deinit() catch {};
+    defer tui.deinit() catch {};
 
     while (true) {
         defer _ = arena.reset(.free_all);
-        defer screen.render() catch {};
+        defer tui.render() catch {};
 
-        _ = screen.delta(init.io);
+        _ = tui.delta(init.io);
 
         if (try fintui.event.poll(stdin.handle)) |event| {
             switch (event) {
                 .key => |key| {
                     if (key == .ctrl_c) break;
-                    try screen.writeString(0, 0, "                                          ", .{});
+                    try tui.drawString(0, 0, "                                          ", .{});
                     const text = try std.fmt.allocPrint(frame_alloc, "Event: {s}", .{switch (key) {
                         _ => &.{@intFromEnum(key)},
                         else => @tagName(key),
                     }});
-                    try screen.writeString(0, 0, text, .{});
+                    try tui.drawString(0, 0, text, .{});
                 },
                 else => {},
             }

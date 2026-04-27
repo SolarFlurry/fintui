@@ -48,21 +48,21 @@ pub fn main(init: std.process.Init) !void {
 
     const stdin = std.Io.File.stdin();
 
-    var screen = try fintui.Screen.init(
+    var tui = try fintui.Tui.init(
         init.gpa,
         arena.allocator(),
         writer,
         init.io,
     );
-    defer screen.deinit() catch {};
+    defer tui.deinit() catch {};
 
     var anim_progress: u8 = 0;
 
     while (true) {
         defer _ = arena.reset(.free_all);
-        defer screen.render() catch {};
+        defer tui.render() catch {};
 
-        const delta: f64 = screen.delta(init.io);
+        const delta: f64 = tui.delta(init.io);
         const sleep_time = 0.1 - delta;
         if (sleep_time > 0) {
             try init.io.sleep(std.Io.Duration.fromNanoseconds(@trunc(sleep_time * std.time.ns_per_s)), .awake);
@@ -77,17 +77,17 @@ pub fn main(init: std.process.Init) !void {
             }
         }
 
-        const x: u8 = @intCast((screen.width - logo_width) / 2);
-        const y: u8 = @intCast((screen.height - logo_height) / 2);
+        const x: u8 = @intCast((tui.screen.width - logo_width) / 2);
+        const y: u8 = @intCast((tui.screen.height - logo_height) / 2);
 
-        try screen.writeString(x, y, logo, .{});
-        try screen.writeString(x + logo_width - 6, y - 3, water_spout[anim_progress / 3], .{
+        try tui.drawString(x, y, logo, .{});
+        try tui.drawString(x + logo_width - 6, y - 3, water_spout[anim_progress / 3], .{
             .fg = .{
                 .truecolor = .{ 12, 137, 232 },
             },
         });
 
-        try screen.writeString(@intCast((screen.width - description.len) / 2), y + logo_height + 2, description, .{});
+        try tui.drawString(@intCast((tui.screen.width - description.len) / 2), y + logo_height + 2, description, .{});
 
         anim_progress += 1;
         if (anim_progress >= water_spout.len * 3) anim_progress = 0;

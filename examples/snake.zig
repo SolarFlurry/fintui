@@ -25,29 +25,29 @@ const Pos = struct {
     y: u16,
 };
 
-fn randomPos(rand: std.Random, screen: *const fintui.Screen) Pos {
+fn randomPos(rand: std.Random, tui: *const fintui.Tui) Pos {
     return .{
-        .x = rand.intRangeAtMost(u16, 1, @intCast(screen.width - 2)),
-        .y = rand.intRangeAtMost(u16, 1, @intCast(screen.height - 2)),
+        .x = rand.intRangeAtMost(u16, 1, @intCast(tui.screen.width - 2)),
+        .y = rand.intRangeAtMost(u16, 1, @intCast(tui.screen.height - 2)),
     };
 }
 
-fn resetSnake(gpa: std.mem.Allocator, screen: *const fintui.Screen, body: *std.Deque(Dir), head: *Pos, dir: *Dir) !void {
+fn resetSnake(gpa: std.mem.Allocator, tui: *const fintui.Tui, body: *std.Deque(Dir), head: *Pos, dir: *Dir) !void {
     body.deinit(gpa);
     body.* = .empty;
     try body.pushFrontSlice(gpa, &(.{.right} ** 20));
     head.* = .{
-        .x = @intCast((screen.width + body.len) / 2),
-        .y = @intCast(screen.height / 2),
+        .x = @intCast((tui.screen.width + body.len) / 2),
+        .y = @intCast(tui.screen.height / 2),
     };
     dir.* = .right;
 }
 
-fn renderSnake(screen: *fintui.Screen, body: *const std.Deque(Dir), head: Pos) !void {
+fn renderSnake(tui: *fintui.Tui, body: *const std.Deque(Dir), head: Pos) !void {
     var temp_pos = head;
     var iter = body.iterator();
     while (iter.next()) |dir| {
-        screen.writeCell(temp_pos.x, temp_pos.y, .{
+        tui.drawCell(temp_pos.x, temp_pos.y, .{
             .style = .{
                 .bg = .{ .truecolor = snake_color },
             },
@@ -76,13 +76,13 @@ pub fn main(init: std.process.Init) !void {
 
     const stdin = std.Io.File.stdin();
 
-    var screen = try fintui.Screen.init(
+    var tui = try fintui.Tui.init(
         init.gpa,
         frame_alloc,
         writer,
         init.io,
     );
-    defer screen.deinit() catch {};
+    defer tui.deinit() catch {};
 
     var prng = std.Random.DefaultPrng.init(seed: {
         var seed: u64 = undefined;
@@ -108,19 +108,19 @@ pub fn main(init: std.process.Init) !void {
 
     try resetSnake(
         init.gpa,
-        &screen,
+        &tui,
         &snake_body,
         &snake_head,
         &snake_dir,
     );
 
-    var food: Pos = randomPos(rand, &screen);
+    var food: Pos = randomPos(rand, &tui);
 
     gameloop: while (true) {
         defer _ = arena.reset(.free_all);
-        defer screen.render() catch {};
+        defer tui.render() catch {};
 
-        const delta: f64 = screen.delta(init.io);
+        const delta: f64 = tui.delta(init.io);
         const sleep_time = target_delta - delta;
         if (sleep_time > 0) {
             try init.io.sleep(std.Io.Duration.fromNanoseconds(@trunc(sleep_time * std.time.ns_per_s)), .awake);
@@ -130,16 +130,16 @@ pub fn main(init: std.process.Init) !void {
         if (game_mode != .playing) {
             const message = "Press any key to start";
 
-            const y: u16 = @intCast(screen.height / 2);
+            const y: u16 = @intCast(tui.screen.height / 2);
 
-            try screen.writeString(@intCast((screen.width - message.len) / 2), y + 2, message, .{});
+            try tui.drawString(@intCast((tui.screen.width - message.len) / 2), y + 2, message, .{});
 
-            try renderSnake(&screen, &snake_body, snake_head);
+            try renderSnake(&tui, &snake_body, snake_head);
 
             if (game_mode == .over) {
-                try screen.writeString(@intCast((screen.width - 9) / 2), y - 2, "Game Over", .{});
+                try tui.drawString(@intCast((tui.screen.width - 9) / 2), y - 2, "Game Over", .{});
             } else {
-                try screen.writeString(@intCast((screen.width - 5) / 2), y - 2, "Snake", .{});
+                try tui.drawString(@intCast((tui.screen.width - 5) / 2), y - 2, "Snake", .{});
             }
 
             if (try fintui.event.poll(stdin.handle)) |event| {
@@ -148,15 +148,17 @@ pub fn main(init: std.process.Init) !void {
                         if (key == .ctrl_c) break;
                         try resetSnake(
                             init.gpa,
-                            &screen,
+                            &tui,
                             &snake_body,
                             &snake_head,
                             &snake_dir,
                         );
                         snake_growth = 0;
                         tick = 0;
-                        food = randomPos(rand, &screen);
+                        food = randomPos(rand, &tui);
                         game_mode = .playing;
+                        try tui.fill(.{});
+                        try renderSnake(&tui, &snake_body, snake_head);
                     },
                     else => {},
                 }
@@ -185,14 +187,14 @@ pub fn main(init: std.process.Init) !void {
                 snake_head.y -= 1;
             },
             .down => {
-                if (snake_head.y == screen.height - 1) {
+                if (snake_head.y == tui.screen.height - 1) {
                     game_mode = .over;
                     continue :gameloop;
                 }
                 snake_head.y += 1;
             },
             .right => {
-                if (snake_head.x == screen.width - 1) {
+                if (snake_head.x == tui.screen.width - 1) {
                     game_mode = .over;
                     continue :gameloop;
                 }
@@ -208,7 +210,7 @@ pub fn main(init: std.process.Init) !void {
         }
 
         if (snake_head.x == food.x and snake_head.y == food.y) {
-            food = randomPos(rand, &screen);
+            food = randomPos(rand, &tui);
             snake_growth = 5;
         }
         if (snake_growth == 0) {
@@ -219,7 +221,7 @@ pub fn main(init: std.process.Init) !void {
 
         try snake_body.pushFront(init.gpa, snake_dir);
 
-        const cell_at_head = screen.getCell(snake_head.x, snake_head.y);
+        const cell_at_head = tui.screen.readCell(snake_head.x, snake_head.y);
         switch (cell_at_head.style.bg) {
             .truecolor => |rgb| {
                 if (std.mem.eql(u8, &rgb, &snake_color)) {
@@ -230,10 +232,10 @@ pub fn main(init: std.process.Init) !void {
             else => {},
         }
 
-        try screen.fill(.{});
+        try tui.fill(.{});
 
-        try renderSnake(&screen, &snake_body, snake_head);
-        try screen.writeCell(food.x, food.y, .{
+        try renderSnake(&tui, &snake_body, snake_head);
+        try tui.drawCell(food.x, food.y, .{
             .style = .{
                 .bg = .{ .truecolor = .{ 255, 0, 0 } },
             },
