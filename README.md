@@ -32,24 +32,24 @@ pub fn main(init: std.process.Init) !void {
 
     const stdin = std.Io.File.stdin();
 
-    // setup fintui screen!
-    var screen: fintui.Screen = .init(
+    // setup fintui context
+    var tui: fintui.Tui = .init(
         init.gpa,
         arena.allocator(),
         writer,
         init.io,
     );
-    defer screen.deinit() catch {};
+    defer tui.deinit() catch {};
 
     // main loop
     while (true) {
         defer _ = arena.reset(.free_all); // reset frame arena per frame
-        defer screen.render() catch {}; // render screen
+        defer tui.render() catch {}; // render screen
 
-        const delta = screen.delta(init.io); // call this function ONCE a frame to get deltatime
+        const delta = tui.delta(init.io); // call this function ONCE a frame to get deltatime
         
-        // render a string to the screen!
-        screen.writeString(0, 0, "Some text!", .{});
+        // render a string to the tui!
+        tui.drawString(0, 0, "Some text!", .{});
     }
 }
 ```
