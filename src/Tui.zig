@@ -36,14 +36,12 @@ pub fn deinit(self: *Tui) !void {
 }
 
 /// This calculates the delta in seconds. Use once per frame.
-pub fn delta(self: *Tui, io: std.Io) f64 {
+pub fn delta(self: *Tui, io: std.Io) std.Io.Duration {
     const current_time = std.Io.Timestamp.now(io, .awake);
     const elapsed = self.last_time.durationTo(current_time);
-
-    const dt = @as(f64, @floatFromInt(elapsed.nanoseconds)) / std.time.ns_per_s;
-
     self.last_time = current_time;
-    return dt;
+
+    return elapsed;
 }
 
 /// This should only be called once a frame
