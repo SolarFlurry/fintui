@@ -1,7 +1,7 @@
 const std = @import("std");
 const fintui = @import("fintui");
 
-const target_delta: f64 = 0.05;
+const target_delta: i96 = std.time.ns_per_s / 20;
 const snake_color = [3]u8{ 80, 181, 93 };
 
 const Dir = enum(u8) {
@@ -120,12 +120,11 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.free_all);
         defer tui.render() catch {};
 
-        const delta: f64 = tui.delta(init.io);
-        const sleep_time = target_delta - delta;
-        if (sleep_time > 0) {
-            try init.io.sleep(std.Io.Duration.fromNanoseconds(@trunc(sleep_time * std.time.ns_per_s)), .awake);
+        const delta = tui.delta(init.io);
+        if (delta.nanoseconds < target_delta) {
+            try init.io.sleep(std.Io.Duration.fromNanoseconds(target_delta - delta.nanoseconds), .awake);
+            continue;
         }
-        if (delta < target_delta) continue;
 
         if (game_mode != .playing) {
             const message = "Press any key to start";

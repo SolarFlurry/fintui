@@ -34,9 +34,9 @@ pub fn main(init: std.process.Init) !void {
         defer tui.render() catch {};
 
         const delta = tui.delta(init.io);
-        const sleep_time = 1.0 / 60.0 - delta;
+        const sleep_time: i96 = std.time.ns_per_s / 60 - delta.nanoseconds;
         if (sleep_time > 0) {
-            try init.io.sleep(std.Io.Duration.fromNanoseconds(@trunc(sleep_time * std.time.ns_per_s)), .awake);
+            try init.io.sleep(std.Io.Duration.fromNanoseconds(sleep_time), .awake);
         }
 
         try tui.drawString(0, 0, "Use 'q' to exit this demo!", .{});

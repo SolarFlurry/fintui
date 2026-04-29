@@ -62,10 +62,10 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.free_all);
         defer tui.render() catch {};
 
-        const delta: f64 = tui.delta(init.io);
-        const sleep_time = 0.1 - delta;
+        const delta = tui.delta(init.io);
+        const sleep_time: i96 = std.time.ns_per_s / 10 - delta.nanoseconds;
         if (sleep_time > 0) {
-            try init.io.sleep(std.Io.Duration.fromNanoseconds(@trunc(sleep_time * std.time.ns_per_s)), .awake);
+            try init.io.sleep(std.Io.Duration.fromNanoseconds(sleep_time), .awake);
         }
 
         if (try fintui.event.poll(stdin.handle)) |event| {
