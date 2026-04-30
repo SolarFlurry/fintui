@@ -7,12 +7,11 @@ const Cell = Screen.Cell;
 const DrawError = Screen.ChangeError;
 
 gpa: std.mem.Allocator,
-frame_arena: std.mem.Allocator,
 out: *std.Io.Writer,
 screen: Screen,
 last_time: std.Io.Timestamp,
 
-pub fn init(gpa: std.mem.Allocator, frame_arena: std.mem.Allocator, out: *std.Io.Writer, io: std.Io) !Tui {
+pub fn init(gpa: std.mem.Allocator, out: *std.Io.Writer, io: std.Io) !Tui {
     const winsize = try tty.getTermSize();
 
     try tty.enableRawMode();
@@ -21,7 +20,6 @@ pub fn init(gpa: std.mem.Allocator, frame_arena: std.mem.Allocator, out: *std.Io
 
     return .{
         .gpa = gpa,
-        .frame_arena = frame_arena,
         .out = out,
         .screen = try .init(gpa, winsize.@"0", winsize.@"1", out),
         .last_time = std.Io.Timestamp.now(io, .awake),
