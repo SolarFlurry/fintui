@@ -50,7 +50,6 @@ pub fn main(init: std.process.Init) !void {
 
     var tui = try fintui.Tui.init(
         init.gpa,
-        arena.allocator(),
         writer,
         init.io,
     );
@@ -62,11 +61,7 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.free_all);
         defer tui.render() catch {};
 
-        const delta = tui.delta(init.io);
-        const sleep_time: i96 = std.time.ns_per_s / 10 - delta.nanoseconds;
-        if (sleep_time > 0) {
-            try init.io.sleep(std.Io.Duration.fromNanoseconds(sleep_time), .awake);
-        }
+        _ = try tui.frameDelta(init.io, .fromNanoseconds(std.time.ns_per_s / 20)) orelse continue;
 
         if (try fintui.event.poll(stdin.handle)) |event| {
             switch (event) {

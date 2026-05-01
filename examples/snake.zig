@@ -1,7 +1,7 @@
 const std = @import("std");
 const fintui = @import("fintui");
 
-const target_delta: i96 = std.time.ns_per_s / 20;
+const target_delta: std.Io.Duration = .fromNanoseconds(std.time.ns_per_s / 20);
 const snake_color = [3]u8{ 80, 181, 93 };
 
 const Dir = enum(u8) {
@@ -66,7 +66,6 @@ fn renderSnake(tui: *fintui.Tui, body: *const std.Deque(Dir), head: Pos) !void {
 
 pub fn main(init: std.process.Init) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    const frame_alloc = arena.allocator();
     defer arena.deinit();
 
     var stdout_buf: [1024]u8 = undefined;
@@ -78,7 +77,6 @@ pub fn main(init: std.process.Init) !void {
 
     var tui = try fintui.Tui.init(
         init.gpa,
-        frame_alloc,
         writer,
         init.io,
     );
@@ -120,11 +118,7 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.free_all);
         defer tui.render() catch {};
 
-        const delta = tui.delta(init.io);
-        if (delta.nanoseconds < target_delta) {
-            try init.io.sleep(std.Io.Duration.fromNanoseconds(target_delta - delta.nanoseconds), .awake);
-            continue;
-        }
+        _ = try tui.frameDelta(init.io, target_delta) orelse continue;
 
         if (game_mode != .playing) {
             const message = "Press any key to start";

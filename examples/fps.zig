@@ -24,21 +24,21 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.free_all);
         defer tui.render() catch {};
 
-        _ = try tui.frameDelta(init.io, .fromNanoseconds(std.time.ns_per_s / 60)) orelse continue;
+        const delta = try tui.frameDelta(init.io, .fromNanoseconds(std.time.ns_per_s / 60)) orelse continue;
 
         if (try fintui.event.poll(stdin.handle)) |event| {
             switch (event) {
                 .key => |key| {
-                    if (key == .ctrl_c) break;
-                    try tui.drawString(0, 0, "                                          ", .{});
-                    const text = try std.fmt.allocPrint(frame_alloc, "Event: {s}", .{switch (key) {
-                        _ => &.{@intFromEnum(key)},
-                        else => @tagName(key),
-                    }});
-                    try tui.drawString(0, 0, text, .{});
+                    if (@intFromEnum(key) == 'q') break;
                 },
                 else => {},
             }
         }
+
+        try tui.drawString(0, 0, try std.fmt.allocPrint(
+            frame_alloc,
+            "FPS: {d:.2}            ",
+            .{@as(f64, @floatFromInt(std.time.ns_per_s)) / @as(f64, @floatFromInt(delta.toNanoseconds()))},
+        ), .{});
     }
 }
