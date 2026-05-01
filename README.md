@@ -35,7 +35,6 @@ pub fn main(init: std.process.Init) !void {
     // setup fintui context
     var tui: fintui.Tui = .init(
         init.gpa,
-        arena.allocator(),
         writer,
         init.io,
     );
@@ -46,7 +45,7 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.free_all); // reset frame arena per frame
         defer tui.render() catch {}; // render screen
 
-        const delta = tui.delta(init.io); // call this function ONCE a frame to get deltatime
+        _ = tui.delta(init.io); // call this function ONCE a frame to get deltatime
         
         // render a string to the tui!
         tui.drawString(0, 0, "Some text!", .{});
