@@ -33,7 +33,24 @@ pub fn deinit(self: *Tui) !void {
     try self.out.flush();
 }
 
-/// This calculates the delta in seconds. Use once per frame.
+/// TODO: make better name
+/// This method returns delta and also attempts to change the delta to the target delta (to reduce CPU strain).
+/// You do not need to uset he `delta` method if you use this.
+pub fn frameDelta(self: *Tui, io: std.Io, target_delta: std.Io.Duration) !?std.Io.Duration {
+    const elapsed = self.delta(io);
+    const sleep_time = target_delta.toNanoseconds() - elapsed.toNanoseconds();
+
+    const sleep_error: i96 = 4_000_000; // 4 ms
+
+    if (sleep_time > sleep_error) {
+        try io.sleep(.fromNanoseconds(sleep_time - sleep_error), .awake);
+        return null;
+    }
+
+    return elapsed;
+}
+
+/// Returns the delta. Call once a frame
 pub fn delta(self: *Tui, io: std.Io) std.Io.Duration {
     const current_time = std.Io.Timestamp.now(io, .awake);
     const elapsed = self.last_time.durationTo(current_time);
