@@ -45,10 +45,12 @@ pub fn main(init: std.process.Init) !void {
         defer _ = arena.reset(.free_all); // reset frame arena per frame
         defer tui.render() catch {}; // render screen
 
+        _ = try fintui.event.poll(stdin.handle); // poll for an event
+
         _ = tui.delta(init.io); // call this function ONCE a frame to get deltatime
         
         // render a string to the tui!
-        tui.drawString(0, 0, "Some text!", .{});
+        try tui.drawString(0, 0, "Some text!", .{});
     }
 }
 ```
