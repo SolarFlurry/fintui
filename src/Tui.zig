@@ -117,3 +117,10 @@ pub fn hideCursor(self: *Tui) !void {
 pub fn moveCursor(self: *Tui, x: u16, y: u16) !void {
     try self.screen.moveCursor(x, y);
 }
+
+pub fn getCenterPos(self: *Tui, width: u16, height: u16) struct { x: u16, y: u16 } {
+    return .{
+        .x = @intCast((self.screen.width - width) / 2),
+        .y = @intCast((self.screen.height - height) / 2),
+    };
+}
