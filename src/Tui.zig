@@ -6,6 +6,33 @@ const Screen = @import("Screen.zig");
 const Cell = Screen.Cell;
 const DrawError = Screen.ChangeError;
 
+pub const Event = @import("event.zig").Event;
+
+const EventQueue = struct {
+    deque: std.Deque(Event),
+    mutex: std.Io.Mutex,
+
+    pub fn init() EventQueue {
+        return .{
+            .deque = .empty,
+            .mutex = .init,
+        };
+    }
+
+    pub fn lock() void {}
+
+    pub fn add(self: *EventQueue, io: std.Io, gpa: std.mem.Allocator, item: Event) !void {
+        try self.mutex.lock(io);
+        try self.deque.pushFront(gpa, item);
+        self.mutex.unlock(io);
+    }
+
+    pub fn get(self: *EventQueue) !?Event {
+        try self.mutex.lock();
+        return self.deque.popBack();
+    }
+};
+
 gpa: std.mem.Allocator,
 out: *std.Io.Writer,
 screen: Screen,
