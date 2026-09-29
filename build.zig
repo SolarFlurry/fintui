@@ -16,6 +16,20 @@ pub fn build(b: *std.Build) !void {
         }),
     });
 
+    const stb_image = b.addTranslateC(.{
+        .optimize = optimize,
+        .target = target,
+        .root_source_file = b.path("stb/stb_image.h"),
+        .link_libc = true,
+    });
+
+    lib_fintui.root_module.addImport("stb_image", stb_image.createModule());
+
+    // lib_fintui.root_module.addCSourceFile(.{
+    //     .file = b.path("stb/stb_image.h"),
+    //     .language = .c,
+    // });
+
     if (!build_examples) return;
 
     const examples_dir = try b.build_root.handle.openDir(b.graph.io, "examples", .{ .iterate = true });

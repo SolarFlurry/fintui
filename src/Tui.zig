@@ -5,6 +5,9 @@ const tty = @import("Tui/tty.zig");
 const Screen = @import("Screen.zig");
 const Cell = Screen.Cell;
 const DrawError = Screen.ChangeError;
+pub const Image = @import("Tui/Image.zig");
+
+const stb = @import("stb_image");
 
 pub const Event = @import("event.zig").Event;
 
@@ -37,6 +40,9 @@ gpa: std.mem.Allocator,
 out: *std.Io.Writer,
 screen: Screen,
 last_time: std.Io.Timestamp,
+image_ids: struct {
+    next_image_id: u32,
+},
 
 pub fn init(gpa: std.mem.Allocator, out: *std.Io.Writer, io: std.Io) !Tui {
     const winsize = try tty.getTermSize();
@@ -50,6 +56,9 @@ pub fn init(gpa: std.mem.Allocator, out: *std.Io.Writer, io: std.Io) !Tui {
         .out = out,
         .screen = try .init(gpa, winsize.@"0", winsize.@"1", out),
         .last_time = std.Io.Timestamp.now(io, .awake),
+        .image_ids = .{
+            .next_image_id = 0,
+        },
     };
 }
 
@@ -150,4 +159,17 @@ pub fn getCenterPos(self: *Tui, width: u16, height: u16) struct { x: u16, y: u16
         .x = @intCast((self.screen.width - width) / 2),
         .y = @intCast((self.screen.height - height) / 2),
     };
+}
+
+// ------------------------------
+// IMAGE
+// ------------------------------
+
+pub fn loadImage(s: *Tui, source: Image.Source) !Image {
+    if (source.path) |_| return error.UnsupportedSource;
+    if (source.rgba) |_| return error.UnsupportedSource;
+
+    try s.out.print("\x1b_Gf=24,i={d},s={d},v={d};", .{
+        s.image_ids.next_image_id,
+    });
 }
