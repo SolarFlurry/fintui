@@ -4,7 +4,7 @@ const Tui = @This();
 const tty = @import("Tui/tty.zig");
 const Screen = @import("Screen.zig");
 const Cell = Screen.Cell;
-const DrawError = Screen.ChangeError;
+pub const DrawError = Screen.ChangeError;
 
 pub const Event = @import("event.zig").Event;
 
@@ -62,7 +62,7 @@ pub fn deinit(self: *Tui) !void {
 
 /// TODO: make better name
 /// This method returns delta and also attempts to change the delta to the target delta (to reduce CPU strain).
-/// You do not need to uset he `delta` method if you use this.
+/// You do not need to use the `delta` method if you use this.
 pub fn frameDelta(self: *Tui, io: std.Io, target_delta: std.Io.Duration) !?std.Io.Duration {
     const elapsed = self.delta(io);
     const sleep_time = target_delta.toNanoseconds() - elapsed.toNanoseconds();

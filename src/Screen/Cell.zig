@@ -51,7 +51,7 @@ pub const Color = union(enum) {
         .truecolor = .{ 0, 0, 0 },
     };
 
-    pub const rgb_white = .{
+    pub const rgb_white: Color = .{
         .truecolor = .{ 255, 255, 255 },
     };
 
@@ -62,8 +62,8 @@ pub const Color = union(enum) {
             .index => |index| {
                 try writer.print("{d}", .{@intFromEnum(index)});
             },
-            .truecolor => |rgb| {
-                try writer.print("8;2;{d};{d};{d}", .{ rgb[0], rgb[1], rgb[2] });
+            .truecolor => |truecolor| {
+                try writer.print("8;2;{d};{d};{d}", .{ truecolor[0], truecolor[1], truecolor[2] });
             },
         }
     }
@@ -75,5 +75,9 @@ pub const Color = union(enum) {
             .index => a.index == b.index,
             .truecolor => std.mem.eql(u8, &a.truecolor, &b.truecolor),
         };
+    }
+
+    pub fn rgb(r: u8, g: u8, b: u8) Color {
+        return .{ .truecolor = .{ r, g, b } };
     }
 };

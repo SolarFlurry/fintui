@@ -23,14 +23,28 @@ pub fn build(b: *std.Build) !void {
 
     var iter = examples_dir.iterateAssumeFirstIteration();
     while (try iter.next(b.graph.io)) |entry| {
-        if (entry.kind != .file or !std.mem.endsWith(u8, entry.name, ".zig")) continue;
+        var basename: []const u8 = undefined;
+        var mod_path: std.Build.LazyPath = undefined;
 
-        const basename = std.fs.path.basename(entry.name);
+        switch (entry.kind) {
+            .file => {
+                if (!std.mem.endsWith(u8, entry.name, ".zig")) continue;
+
+                basename = std.fs.path.basename(entry.name);
+                basename = basename[0 .. basename.len - 4];
+                mod_path = b.path(try std.fs.path.join(b.allocator, &.{ "examples", entry.name }));
+            },
+            .directory => {
+                basename = std.fs.path.basename(entry.name);
+                mod_path = b.path(try std.fs.path.join(b.allocator, &.{ "examples", entry.name, "main.zig" }));
+            },
+            else => continue,
+        }
 
         const exe_example = b.addExecutable(.{
-            .name = try std.mem.join(b.allocator, "", &.{ "libtest_", basename[0 .. basename.len - 4] }),
+            .name = try std.mem.join(b.allocator, "", &.{ "libtest_", basename }),
             .root_module = b.createModule(.{
-                .root_source_file = b.path(try std.fs.path.join(b.allocator, &.{ "examples", entry.name })),
+                .root_source_file = mod_path,
                 .target = target,
                 .optimize = optimize,
             }),

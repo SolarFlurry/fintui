@@ -7,8 +7,8 @@ const Self = @This();
 
 front_buffer: []Cell,
 back_buffer: []Cell,
-width: u32,
-height: u32,
+width: u16,
+height: u16,
 cursor: struct {
     visibility: enum(u8) {
         hidden,
@@ -103,9 +103,9 @@ pub fn render(self: *Self, out: *std.Io.Writer) !void {
             {
                 try out.printUnicodeCodepoint(front_cell.grapheme);
                 back_cell.* = front_cell;
-                i += 1;
                 back_cell = &self.back_buffer[j * self.width + i];
                 front_cell = self.front_buffer[j * self.width + i];
+                i += 1;
             }
         }
     }
