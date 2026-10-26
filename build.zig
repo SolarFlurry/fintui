@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) !void {
 
     if (!build_examples) return;
 
-    const examples_dir = try b.build_root.handle.openDir(b.graph.io, "examples", .{ .iterate = true });
+    const examples_dir = try b.root.openDir(b.graph.io, "examples", .{ .iterate = true });
     defer examples_dir.close(b.graph.io);
 
     var iter = examples_dir.iterateAssumeFirstIteration();

@@ -1,4 +1,5 @@
 const std = @import("std");
+
 const fintui = @import("fintui");
 
 const target_delta: std.Io.Duration = .fromNanoseconds(std.time.ns_per_s / 20);
@@ -35,7 +36,7 @@ fn randomPos(rand: std.Random, tui: *const fintui.Tui) Pos {
 fn resetSnake(gpa: std.mem.Allocator, tui: *const fintui.Tui, body: *std.Deque(Dir), head: *Pos, dir: *Dir) !void {
     body.deinit(gpa);
     body.* = .empty;
-    try body.pushFrontSlice(gpa, &(.{.right} ** 20));
+    try body.pushFrontSlice(gpa, &@as([20]Dir, @splat(.right)));
     head.* = .{
         .x = @intCast((tui.screen.width + body.len) / 2),
         .y = @intCast(tui.screen.height / 2),
@@ -163,8 +164,8 @@ pub fn main(init: std.process.Init) !void {
             switch (event) {
                 .key => |key| {
                     if (key == .ctrl_c) break;
-                    if (@intFromEnum(key) >= 252 and @intFromEnum(snake_dir.opposite()) != @intFromEnum(key)) {
-                        snake_dir = @enumFromInt(@intFromEnum(key));
+                    if (@backingInt(key) >= 252 and @backingInt(snake_dir.opposite()) != @backingInt(key)) {
+                        snake_dir = @fromBackingInt(@intCast(@backingInt(key)));
                     }
                 },
                 else => {},

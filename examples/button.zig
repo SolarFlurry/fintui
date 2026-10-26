@@ -1,4 +1,5 @@
 const std = @import("std");
+
 const fintui = @import("fintui");
 
 fn drawOutlineBox(tui: *fintui.Tui, x: u16, y: u16, width: u16, height: u16, style: fintui.Screen.Cell.Style) !void {
@@ -67,7 +68,7 @@ pub fn main(init: std.process.Init) !void {
         if (try fintui.event.poll(stdin.handle)) |event| {
             switch (event) {
                 .key => |key| {
-                    if (@intFromEnum(key) == 'q') break;
+                    if (@backingInt(key) == 'q') break;
                 },
                 .mouse => |mouse| if (mouse.state == .left_down) {
                     if (mouse.x >= button.x and mouse.x < button.x + button.width and mouse.y >= button.y and mouse.y < button.y + button.height) {
@@ -83,15 +84,34 @@ pub fn main(init: std.process.Init) !void {
             try drawOutlineBox(&tui, button.x, button.y + 1, button.width, button.height, .{
                 .fg = .{ .index = .red },
             });
-            try tui.drawString(@intCast((tui.screen.width - message.len) / 2), @intCast((tui.screen.height - 1) / 2 + 1), message, .{});
+            try tui.drawString(
+                @intCast((tui.screen.width - message.len) / 2),
+                @intCast((tui.screen.height - 1) / 2 + 1),
+                message,
+                .{},
+            );
         } else {
             try drawOutlineBox(&tui, button.x, button.y, button.width, button.height, .{
                 .fg = .{ .index = .red },
             });
-            try tui.drawString(@intCast((tui.screen.width - message.len) / 2), @intCast((tui.screen.height - 1) / 2), message, .{});
-            try tui.drawString(button.x, button.y + button.height, "╰" ++ ("─" ** (message.len + 6)) ++ "╯", .{
-                .fg = .{ .index = .black },
-            });
+            try tui.drawString(
+                @intCast((tui.screen.width - message.len) / 2),
+                @intCast((tui.screen.height - 1) / 2),
+                message,
+                .{},
+            );
+            try tui.drawString(
+                button.x,
+                button.y + button.height,
+                "╰" ++ comptime blk: {
+                    var val: []const u8 = "";
+                    for (0..message.len + 6) |_| {
+                        val = val ++ "─";
+                    }
+                    break :blk val;
+                } ++ "╯",
+                .{ .fg = .{ .index = .black } },
+            );
         }
     }
 }
