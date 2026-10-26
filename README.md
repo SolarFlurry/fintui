@@ -11,7 +11,7 @@ a simple Zig TUI library
 > [!WARNING]
 > Fintui is nowhere near a complete stage to be used
 
-Fintui supports only Zig 0.16.x
+Fintui supports only Zig 0.17.x
 
 Setup example:
 ```zig
