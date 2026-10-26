@@ -6,14 +6,10 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib_fintui = b.addLibrary(.{
-        .name = "fintui",
-        .linkage = .static,
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/fintui.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
+    const fintui_mod = b.addModule("fintui", .{
+        .root_source_file = b.path("src/fintui.zig"),
+        .target = target,
+        .optimize = optimize,
     });
 
     if (!build_examples) return;
@@ -41,7 +37,7 @@ pub fn build(b: *std.Build) !void {
             else => continue,
         }
 
-        const exe_example = b.addExecutable(.{
+        const example_exe = b.addExecutable(.{
             .name = try std.mem.join(b.allocator, "", &.{ "libtest_", basename }),
             .root_module = b.createModule(.{
                 .root_source_file = mod_path,
@@ -50,8 +46,8 @@ pub fn build(b: *std.Build) !void {
             }),
         });
 
-        exe_example.root_module.addImport("fintui", lib_fintui.root_module);
+        example_exe.root_module.addImport("fintui", fintui_mod);
 
-        b.installArtifact(exe_example);
+        b.installArtifact(example_exe);
     }
 }
